@@ -2,14 +2,17 @@
 
 namespace Slimani\MediaManager\Tests\Components;
 
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Schema;
 use Livewire\Component;
 use Slimani\MediaManager\Form\MediaPicker;
 
-class TestMediaFileUploadForm extends Component implements HasForms
+class TestMediaFileUploadForm extends Component implements HasActions, HasForms
 {
+    use InteractsWithActions;
     use InteractsWithForms;
 
     public $data;

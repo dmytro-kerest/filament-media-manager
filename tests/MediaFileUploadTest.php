@@ -21,3 +21,15 @@ it('has browse action', function () {
         ->test(TestMediaFileUploadForm::class)
         ->assertSee('Browse Media');
 });
+
+it('does not throw an exception when state contains non-stringable objects', function () {
+    $user = User::create(['name' => 'Test User']);
+    $nonStringable = new \stdClass;
+
+    Livewire::actingAs($user)
+        ->test(TestMediaFileUploadForm::class)
+        ->set('data.avatar_id', [$nonStringable])
+        ->mountFormComponentAction('avatar_id', 'browse_media')
+        ->callMountedFormComponentAction()
+        ->assertOk();
+});

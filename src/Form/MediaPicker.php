@@ -108,7 +108,7 @@ class MediaPicker extends FileUpload
 
     protected function getIdentifiersFromState($state): array
     {
-        return array_map('strval', array_filter(Arr::wrap($state)));
+        return array_map('strval', array_filter(Arr::wrap($state), fn ($val) => is_string($val) || is_numeric($val) || (is_object($val) && method_exists($val, '__toString'))));
     }
 
     protected function setUp(): void
@@ -141,7 +141,8 @@ class MediaPicker extends FileUpload
                     $items = $selectedIds
                         ? array_map(fn ($id) => "file-{$id}", array_filter(explode(',', $selectedIds)))
                         : collect((array) ($component->getState() ?? []))
-                            ->map(fn ($id) => str_starts_with($id, 'file-') ? $id : "file-{$id}")
+                            ->filter(fn ($id) => is_string($id) || is_numeric($id) || (is_object($id) && method_exists($id, '__toString')))
+                            ->map(fn ($id) => str_starts_with((string) $id, 'file-') ? (string) $id : "file-{$id}")
                             ->toArray();
 
                     return [

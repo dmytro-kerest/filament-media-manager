@@ -2,6 +2,9 @@
 
 namespace Slimani\MediaManager\Tests;
 
+use Filament\Facades\Filament;
+use Filament\Panel;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Slimani\MediaManager\Models\File;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -50,21 +53,21 @@ it('uses exactly defaults when no callback is set', function () {
 });
 
 it('registers video thumbnails when enabled in plugin', function () {
-    $plugin = \Slimani\MediaManager\MediaManagerPlugin::make()
+    $plugin = MediaManagerPlugin::make()
         ->withVideoThumbnails(true);
 
-    $panel = \Filament\Panel::make('video_test')
+    $panel = Panel::make('video_test')
         ->id('video_test')
         ->plugin($plugin);
 
-    \Filament\Facades\Filament::registerPanel($panel);
-    \Filament\Facades\Filament::setCurrentPanel($panel);
+    Filament::registerPanel($panel);
+    Filament::setCurrentPanel($panel);
 
-    $file = new File();
+    $file = new File;
     $file->registerMediaConversions();
 
     $conversions = $file->mediaConversions;
-    
+
     $thumb = collect($conversions)->first(fn ($c) => $c->getName() === 'thumb');
     $preview = collect($conversions)->first(fn ($c) => $c->getName() === 'preview');
 
@@ -73,20 +76,20 @@ it('registers video thumbnails when enabled in plugin', function () {
 });
 
 it('does not register video thumbnails by default', function () {
-    $plugin = \Slimani\MediaManager\MediaManagerPlugin::make(); // Default is false
+    $plugin = MediaManagerPlugin::make(); // Default is false
 
-    $panel = \Filament\Panel::make('default_test')
+    $panel = Panel::make('default_test')
         ->id('default_test')
         ->plugin($plugin);
 
-    \Filament\Facades\Filament::registerPanel($panel);
-    \Filament\Facades\Filament::setCurrentPanel($panel);
+    Filament::registerPanel($panel);
+    Filament::setCurrentPanel($panel);
 
-    $file = new File();
+    $file = new File;
     $file->registerMediaConversions();
 
     $conversions = $file->mediaConversions;
-    
+
     $thumb = collect($conversions)->first(fn ($c) => $c->getName() === 'thumb');
     $preview = collect($conversions)->first(fn ($c) => $c->getName() === 'preview');
 

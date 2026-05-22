@@ -65,4 +65,18 @@ it('has default values for all customizations', function () {
     expect($page->getFooterWidgets())->toBe([]);
     expect($page->getHeader())->toBeNull();
     expect($page->getFooter())->toBeNull();
+    expect($plugin->getWithVideoThumbnails())->toBeFalse();
+});
+
+it('can customize video thumbnails via plugin', function () {
+    $plugin = MediaManagerPlugin::make()
+        ->withVideoThumbnails(true);
+
+    expect($plugin->getWithVideoThumbnails())->toBeTrue();
+
+    $plugin->withVideoThumbnails(false);
+    expect($plugin->getWithVideoThumbnails())->toBeFalse();
+
+    $plugin->videoThumbnails(true);
+    expect($plugin->getWithVideoThumbnails())->toBeTrue();
 });

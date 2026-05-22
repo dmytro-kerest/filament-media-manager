@@ -27,6 +27,8 @@ class MediaManagerPlugin implements Plugin
 
     protected bool|Closure $shouldRegisterNavigation = true;
 
+    protected bool|Closure $withVideoThumbnails = false;
+
     protected array|Closure $headerWidgets = [];
 
     protected array|Closure $footerWidgets = [];
@@ -146,6 +148,23 @@ class MediaManagerPlugin implements Plugin
     public function getShouldRegisterNavigation(): bool
     {
         return (bool) $this->evaluate($this->shouldRegisterNavigation);
+    }
+
+    public function withVideoThumbnails(bool|Closure $condition = true): static
+    {
+        $this->withVideoThumbnails = $condition;
+
+        return $this;
+    }
+
+    public function videoThumbnails(bool|Closure $condition = true): static
+    {
+        return $this->withVideoThumbnails($condition);
+    }
+
+    public function getWithVideoThumbnails(): bool
+    {
+        return (bool) $this->evaluate($this->withVideoThumbnails);
     }
 
     public function headerWidgets(array|Closure $widgets): static

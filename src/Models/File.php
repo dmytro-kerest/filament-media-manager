@@ -74,16 +74,25 @@ class File extends Model implements HasMedia
 
     public function registerMediaConversions(?Media $media = null): void
     {
-        $this->addMediaConversion('thumb')
+        $thumbConversion = $this->addMediaConversion('thumb')
             ->width(300)
             ->height(300)
             ->sharpen(10)
             ->nonQueued();
 
-        $this->addMediaConversion('preview')
+        $previewConversion = $this->addMediaConversion('preview')
             ->width(800)
             ->height(800)
             ->nonQueued();
+
+        try {
+            if (filament('media-manager')->getWithVideoThumbnails()) {
+                $thumbConversion->extractVideoFrameAtSecond(1);
+                $previewConversion->extractVideoFrameAtSecond(1);
+            }
+        } catch (\Throwable $th) {
+            //
+        }
 
         if (static::$registerMediaConversionsUsing) {
             app()->call(static::$registerMediaConversionsUsing, [

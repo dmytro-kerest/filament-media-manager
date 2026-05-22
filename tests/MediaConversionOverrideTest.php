@@ -48,3 +48,48 @@ it('uses exactly defaults when no callback is set', function () {
     expect($conversions[0]->getName())->toBe('thumb');
     expect($conversions[1]->getName())->toBe('preview');
 });
+
+it('registers video thumbnails when enabled in plugin', function () {
+    $plugin = \Slimani\MediaManager\MediaManagerPlugin::make()
+        ->withVideoThumbnails(true);
+
+    $panel = \Filament\Panel::make('video_test')
+        ->id('video_test')
+        ->plugin($plugin);
+
+    \Filament\Facades\Filament::registerPanel($panel);
+    \Filament\Facades\Filament::setCurrentPanel($panel);
+
+    $file = new File();
+    $file->registerMediaConversions();
+
+    $conversions = $file->mediaConversions;
+    
+    $thumb = collect($conversions)->first(fn ($c) => $c->getName() === 'thumb');
+    $preview = collect($conversions)->first(fn ($c) => $c->getName() === 'preview');
+
+    expect($thumb->getExtractVideoFrameAtSecond())->toEqual(1);
+    expect($preview->getExtractVideoFrameAtSecond())->toEqual(1);
+});
+
+it('does not register video thumbnails by default', function () {
+    $plugin = \Slimani\MediaManager\MediaManagerPlugin::make(); // Default is false
+
+    $panel = \Filament\Panel::make('default_test')
+        ->id('default_test')
+        ->plugin($plugin);
+
+    \Filament\Facades\Filament::registerPanel($panel);
+    \Filament\Facades\Filament::setCurrentPanel($panel);
+
+    $file = new File();
+    $file->registerMediaConversions();
+
+    $conversions = $file->mediaConversions;
+    
+    $thumb = collect($conversions)->first(fn ($c) => $c->getName() === 'thumb');
+    $preview = collect($conversions)->first(fn ($c) => $c->getName() === 'preview');
+
+    expect($thumb->getExtractVideoFrameAtSecond())->toEqual(0);
+    expect($preview->getExtractVideoFrameAtSecond())->toEqual(0);
+});

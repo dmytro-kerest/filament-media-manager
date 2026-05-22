@@ -2,6 +2,11 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
+## v0.12.1 - 2026-05-22
+
+### Fixed
+- Added missing `videoThumbnails()` and `withVideoThumbnails()` methods to `MediaManagerPlugin` to allow configuration of video thumbnail generation.
+
 ## v0.9.9 - 2026-03-19
 
 ### Fixed

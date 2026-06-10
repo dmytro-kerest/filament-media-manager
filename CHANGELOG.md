@@ -2,6 +2,19 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
+## v0.13.0 - 2026-06-10
+
+### Added
+- **Model Customization**: Added support for custom model classes (`File`, `Folder`, `Tag`, `MediaAttachment`) via the `MediaManagerPlugin`.
+- **Database Prefix Support**: Full support for database table prefixes by replacing hardcoded table names with dynamic ones in all raw SQL queries and relationships.
+
+### Fixed
+- Fixed 72 PHPStan errors to improve code quality and type safety.
+- Resolved hardcoded table name issues in recursive CTE folder calculations.
+
+### Changed
+- Updated documentation to reflect model customization and prefix support.
+
 ## v0.12.1 - 2026-05-22
 
 ### Fixed

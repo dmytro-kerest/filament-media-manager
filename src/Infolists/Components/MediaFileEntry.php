@@ -4,7 +4,9 @@ namespace Slimani\MediaManager\Infolists\Components;
 
 use Filament\Infolists\Components\ImageEntry;
 use Hugomyb\FilamentMediaAction\Actions\MediaAction;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Slimani\MediaManager\Models\File;
 
 class MediaFileEntry extends ImageEntry
@@ -67,12 +69,16 @@ class MediaFileEntry extends ImageEntry
             return collect();
         }
 
-        return File::whereIn('id', $ids)
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+        $fileModel = $plugin->getFileModel();
+
+        return $fileModel::whereIn('id', $ids)
             ->get()
             ->sortBy(fn ($file) => array_search((string) $file->id, array_map('strval', $ids)));
     }
 
-    public function getFileRecord(): ?File
+    public function getFileRecord(): ?Model
     {
         return $this->getFileRecords()->first();
     }

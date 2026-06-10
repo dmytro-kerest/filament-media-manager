@@ -5,6 +5,7 @@ namespace Slimani\MediaManager\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Str;
+use Slimani\MediaManager\MediaManagerPlugin;
 
 class Tag extends Model
 {
@@ -28,11 +29,17 @@ class Tag extends Model
 
     public function files(): MorphToMany
     {
-        return $this->morphedByMany(File::class, 'taggable', 'media_taggables');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->morphedByMany($plugin->getFileModel(), 'taggable', 'media_taggables');
     }
 
     public function folders(): MorphToMany
     {
-        return $this->morphedByMany(Folder::class, 'taggable', 'media_taggables');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->morphedByMany($plugin->getFolderModel(), 'taggable', 'media_taggables');
     }
 }

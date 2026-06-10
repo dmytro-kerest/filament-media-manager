@@ -7,7 +7,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Slimani\MediaManager\Models\File;
+use Slimani\MediaManager\MediaManagerPlugin;
 
 class MediaFileUpload extends FileUpload
 {
@@ -22,8 +22,10 @@ class MediaFileUpload extends FileUpload
                 return null;
             }
 
-            /** @var File|null $fileModel */
-            $fileModel = File::find($file);
+            /** @var MediaManagerPlugin $plugin */
+            $plugin = filament('media-manager');
+            $fileModelClass = $plugin->getFileModel();
+            $fileModel = $fileModelClass::find($file);
 
             if (! $fileModel) {
                 return null;
@@ -38,7 +40,10 @@ class MediaFileUpload extends FileUpload
         });
 
         $this->saveUploadedFileUsing(static function (MediaFileUpload $component, TemporaryUploadedFile $file, ?Model $record): ?string {
-            $fileModel = File::create([
+            /** @var MediaManagerPlugin $plugin */
+            $plugin = filament('media-manager');
+            $fileModelClass = $plugin->getFileModel();
+            $fileModel = $fileModelClass::create([
                 'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                 'uploaded_by_user_id' => auth()->id(),
             ]);

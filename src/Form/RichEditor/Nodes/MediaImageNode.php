@@ -3,7 +3,7 @@
 namespace Slimani\MediaManager\Form\RichEditor\Nodes;
 
 use Filament\Forms\Components\RichEditor\TipTapExtensions\ImageExtension as FilamentImageExtension;
-use Slimani\MediaManager\Models\File;
+use Slimani\MediaManager\MediaManagerPlugin;
 
 class MediaImageNode extends FilamentImageExtension
 {
@@ -28,7 +28,10 @@ class MediaImageNode extends FilamentImageExtension
     public function renderHTML($node, $HTMLAttributes = []): array
     {
         if (filled($node->attrs->id ?? null)) {
-            $file = File::find($node->attrs->id);
+            /** @var MediaManagerPlugin $plugin */
+            $plugin = filament('media-manager');
+            $fileModel = $plugin->getFileModel();
+            $file = $fileModel::find($node->attrs->id);
 
             if ($file) {
                 $HTMLAttributes['src'] = $file->getUrl();

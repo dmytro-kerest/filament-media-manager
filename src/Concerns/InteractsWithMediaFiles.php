@@ -5,8 +5,6 @@ namespace Slimani\MediaManager\Concerns;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Slimani\MediaManager\Models\File;
-use Slimani\MediaManager\Models\MediaAttachment;
 
 trait InteractsWithMediaFiles
 {
@@ -15,7 +13,7 @@ trait InteractsWithMediaFiles
      */
     public function mediaAttachments(): MorphMany
     {
-        return $this->morphMany(MediaAttachment::class, 'attachable');
+        return $this->morphMany(filament('media-manager')->getAttachmentModel(), 'attachable');
     }
 
     /**
@@ -23,7 +21,10 @@ trait InteractsWithMediaFiles
      */
     public function mediaFiles(?string $collection = null): MorphToMany
     {
-        $relation = $this->morphToMany(File::class, 'attachable', 'media_attachments', 'attachable_id', 'media_file_id')
+        $fileModel = filament('media-manager')->getFileModel();
+        $attachmentModel = new (filament('media-manager')->getAttachmentModel());
+
+        $relation = $this->morphToMany($fileModel, 'attachable', $attachmentModel->getTable(), 'attachable_id', 'media_file_id')
             ->withPivot('collection', 'sort_order')
             ->withTimestamps()
             ->orderByPivot('sort_order');
@@ -40,6 +41,6 @@ trait InteractsWithMediaFiles
      */
     public function mediaFile(string $column): BelongsTo
     {
-        return $this->belongsTo(File::class, $column);
+        return $this->belongsTo(filament('media-manager')->getFileModel(), $column);
     }
 }

@@ -318,6 +318,30 @@ MediaManagerPlugin::make()
     ->withVideoThumbnails() // Optional: Enable video thumbnails (requires FFMPEG)
 ```
 
+#### Model Customization & Table Prefix Support
+
+The Media Manager is fully compatible with database table prefixes and allows you to customize the underlying models for File, Folder, Tag, and MediaAttachment.
+
+##### Table Prefix Support
+All raw SQL queries within the package (such as recursive folder calculations) use dynamic table names retrieved from your models. This ensures that if you define a prefix in your `database.php` configuration, the package will automatically respect it.
+
+##### Custom Model Classes
+If you need to add custom logic, relationships, or traits to the internal models, you can swap them out in the plugin registration:
+
+```php
+use App\Models\CustomFile;
+use App\Models\CustomFolder;
+use Slimani\MediaManager\MediaManagerPlugin;
+
+MediaManagerPlugin::make()
+    ->fileModel(CustomFile::class)
+    ->folderModel(CustomFolder::class)
+    ->tagModel(CustomTag::class)
+    ->attachmentModel(CustomMediaAttachment::class)
+```
+
+> **Note**: Your custom models should typically extend the base models provided by the package to ensure all core functionality remains intact.
+
 #### Video Thumbnails
 
 Thumbnail generation for videos is handled natively by the underlying Spatie MediaLibrary when **FFMPEG** and **FFProbe** are installed on your server.

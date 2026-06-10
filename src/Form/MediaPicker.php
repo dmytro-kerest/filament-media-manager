@@ -16,8 +16,8 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Slimani\MediaManager\Livewire\MediaBrowser;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Slimani\MediaManager\Models\File;
-use Slimani\MediaManager\Models\Folder;
 
 class MediaPicker extends FileUpload
 {
@@ -172,7 +172,10 @@ class MediaPicker extends FileUpload
                 ->modalWidth('6xl')
                 ->action(function (MediaPicker $component, array $data) {
                     $identifiers = array_filter(explode(',', $data['selected_ids'] ?? ''));
-                    $files = File::whereIn('id', $identifiers)->get();
+                    /** @var MediaManagerPlugin $plugin */
+                    $plugin = filament('media-manager');
+                    $fileModel = $plugin->getFileModel();
+                    $files = $fileModel::whereIn('id', $identifiers)->get();
 
                     $component->state($identifiers);
                 })
@@ -181,7 +184,10 @@ class MediaPicker extends FileUpload
         // No-op hydration since we handle IDs directly
 
         $this->getUploadedFileUsing(static function (MediaPicker $component, string $file): ?array {
-            $fileRecord = File::find($file);
+            /** @var MediaManagerPlugin $plugin */
+            $plugin = filament('media-manager');
+            $fileModel = $plugin->getFileModel();
+            $fileRecord = $fileModel::find($file);
 
             if (! $fileRecord) {
                 return null;
@@ -199,16 +205,19 @@ class MediaPicker extends FileUpload
             ];
         });
 
-        $this->saveUploadedFileUsing(static function (MediaPicker $component, TemporaryUploadedFile $file): ?string {
-            $folderId = null;
+        $this->saveUploadedFileUsing(static function (MediaPicker $component, TemporaryUploadedFile $file, ?Model $record): ?string {
             $directory = $component->getDirectory();
+            $folderId = null;
 
             if ($directory) {
                 $segments = explode('/', trim($directory, '/'));
                 $parentId = null;
 
                 foreach ($segments as $segment) {
-                    $folder = Folder::firstOrCreate([
+                    /** @var MediaManagerPlugin $plugin */
+                    $plugin = filament('media-manager');
+                    $folderModel = $plugin->getFolderModel();
+                    $folder = $folderModel::firstOrCreate([
                         'name' => $segment,
                         'parent_id' => $parentId,
                     ]);
@@ -217,7 +226,11 @@ class MediaPicker extends FileUpload
                 $folderId = $parentId;
             }
 
-            $fileModel = File::create([
+            /** @var MediaManagerPlugin $plugin */
+            $plugin = filament('media-manager');
+            $fileModelClass = $plugin->getFileModel();
+            $fileModel = $fileModelClass::create([
+
                 'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                 'uploaded_by_user_id' => auth()->id(),
                 'folder_id' => $folderId,

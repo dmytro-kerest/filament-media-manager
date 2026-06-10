@@ -4,7 +4,7 @@ namespace Slimani\MediaManager\Infolists\Components;
 
 use Filament\Infolists\Components\ImageEntry;
 use Illuminate\Support\Collection;
-use Slimani\MediaManager\Models\File;
+use Slimani\MediaManager\MediaManagerPlugin;
 
 class MediaImageEntry extends ImageEntry
 {
@@ -33,9 +33,20 @@ class MediaImageEntry extends ImageEntry
         }
 
         if (is_numeric($state)) {
-            $state = File::find($state);
+            /** @var MediaManagerPlugin $plugin */
+            $plugin = filament('media-manager');
+            $fileModel = $plugin->getFileModel();
+            $state = $fileModel::find($state);
         }
 
-        return ($state instanceof File) ? $state->getUrl($this->getConversion()) : parent::getImageUrl($state);
+        return ($state instanceof ($this->getFileModel())) ? $state->getUrl($this->getConversion()) : parent::getImageUrl($state);
+    }
+
+    protected function getFileModel(): string
+    {
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $plugin->getFileModel();
     }
 }

@@ -85,12 +85,6 @@ parameters:
 			path: src/Livewire/MediaBrowser.php
 
 		-
-			message: '#^Parameter \#1 \$folder of method Slimani\\MediaManager\\Livewire\\MediaBrowser\:\:recursiveDeleteFolder\(\) expects Slimani\\MediaManager\\Models\\Folder, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Livewire/MediaBrowser.php
-
-		-
 			message: '#^Parameter \#1 \$view of function view expects view\-string\|null, string given\.$#'
 			identifier: argument.type
 			count: 2

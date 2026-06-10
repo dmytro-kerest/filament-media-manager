@@ -5,6 +5,7 @@ namespace Slimani\MediaManager\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Slimani\MediaManager\MediaManagerPlugin;
 
 class MediaAttachment extends Model
 {
@@ -25,6 +26,9 @@ class MediaAttachment extends Model
 
     public function file(): BelongsTo
     {
-        return $this->belongsTo(File::class, 'media_file_id');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->belongsTo($plugin->getFileModel(), 'media_file_id');
     }
 }

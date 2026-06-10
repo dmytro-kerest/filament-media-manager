@@ -3,7 +3,7 @@
 namespace Slimani\MediaManager\Form\RichEditor\Nodes;
 
 use Illuminate\Support\Facades\View;
-use Slimani\MediaManager\Models\File;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Tiptap\Core\Node;
 use Tiptap\Utils\HTML;
 
@@ -56,7 +56,10 @@ class MediaFileNode extends Node
 
     public function renderHTML($node, $HTMLAttributes = []): array
     {
-        $file = File::find($node->attrs->id);
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+        $fileModel = $plugin->getFileModel();
+        $file = $fileModel::find($node->attrs->id);
         $url = $file?->getUrl() ?? '#';
 
         $html = View::make('media-manager::rich-editor.nodes.media-file', [

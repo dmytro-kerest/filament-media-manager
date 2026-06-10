@@ -7,8 +7,7 @@ use Filament\Forms\Components\RichEditor\FileAttachmentProviders\Contracts\FileA
 use Filament\Forms\Components\RichEditor\RichContentAttribute;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Slimani\MediaManager\Models\File;
-use Slimani\MediaManager\Models\Folder;
+use Slimani\MediaManager\MediaManagerPlugin;
 
 class MediaManagerFileAttachmentProvider implements FileAttachmentProvider
 {
@@ -48,7 +47,10 @@ class MediaManagerFileAttachmentProvider implements FileAttachmentProvider
 
     public function getFileAttachmentUrl(mixed $file): ?string
     {
-        $fileRecord = File::find($file);
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+        $fileModel = $plugin->getFileModel();
+        $fileRecord = $fileModel::find($file);
 
         if (! $fileRecord) {
             return null;
@@ -67,7 +69,10 @@ class MediaManagerFileAttachmentProvider implements FileAttachmentProvider
             $parentId = null;
 
             foreach ($segments as $segment) {
-                $folder = Folder::firstOrCreate([
+                /** @var MediaManagerPlugin $plugin */
+                $plugin = filament('media-manager');
+                $folderModel = $plugin->getFolderModel();
+                $folder = $folderModel::firstOrCreate([
                     'name' => $segment,
                     'parent_id' => $parentId,
                 ]);
@@ -76,7 +81,10 @@ class MediaManagerFileAttachmentProvider implements FileAttachmentProvider
             $folderId = $parentId;
         }
 
-        $fileModel = File::create([
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+        $fileModelClass = $plugin->getFileModel();
+        $fileModel = $fileModelClass::create([
             'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
             'uploaded_by_user_id' => auth()->id(),
             'folder_id' => $folderId,

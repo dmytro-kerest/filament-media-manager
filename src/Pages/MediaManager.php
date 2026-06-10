@@ -25,7 +25,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\On;
 use Slimani\MediaManager\MediaManagerPlugin;
-use Slimani\MediaManager\Models\File;
 
 class MediaManager extends Page implements HasActions, HasForms
 {
@@ -140,7 +139,10 @@ class MediaManager extends Page implements HasActions, HasForms
                             ->helperText(__('media-manager::media-manager.messages.specific_conversions_help'))
                             ->multiple()
                             ->options(function () {
-                                $file = new File;
+                                /** @var MediaManagerPlugin $plugin */
+                                $plugin = filament('media-manager');
+                                $fileModel = $plugin->getFileModel();
+                                $file = new $fileModel;
                                 $file->registerMediaConversions();
 
                                 return collect($file->mediaConversions)->mapWithKeys(fn ($c) => [$c->getName() => $c->getName()])->toArray();
@@ -161,8 +163,10 @@ class MediaManager extends Page implements HasActions, HasForms
                         : __('media-manager::media-manager.messages.regenerate_for_all_description'))
                     ->successNotificationTitle(__('media-manager::media-manager.messages.regeneration_started'))
                     ->action(function (array $data) {
+                        /** @var MediaManagerPlugin $plugin */
+                        $plugin = filament('media-manager');
                         $params = [
-                            'modelType' => File::class,
+                            'modelType' => $plugin->getFileModel(),
                         ];
 
                         if (! empty($this->selectedFileIds)) {

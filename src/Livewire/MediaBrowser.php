@@ -29,6 +29,7 @@ use Filament\Support\Enums\TextSize;
 use Filament\Support\Icons\Heroicon;
 use Hugomyb\FilamentMediaAction\Actions\MediaAction;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
@@ -44,13 +45,13 @@ use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Slimani\MediaManager\Components\MediaItem;
 use Slimani\MediaManager\Infolists\Components\RepeatableEntry as CustomRepeatableEntry;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Slimani\MediaManager\Models\File;
 use Slimani\MediaManager\Models\Folder;
-use Slimani\MediaManager\Models\Tag;
 
 /**
  * @property-read Collection $items
- * @property-read \Illuminate\Database\Eloquent\Collection<int, Tag> $tags
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Model> $tags
  *
  *
  * no need to add HasSchemas because interface HasForms extends HasSchemas
@@ -72,7 +73,32 @@ class MediaBrowser extends Component implements HasActions, HasForms
         $this->cachedSchemas = [];
     }
 
-    public ?Folder $currentFolder = null;
+    /** @var Folder|null */
+    public ?Model $currentFolder = null;
+
+    protected function getFileModel(): string
+    {
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $plugin->getFileModel();
+    }
+
+    protected function getFolderModel(): string
+    {
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $plugin->getFolderModel();
+    }
+
+    protected function getTagModel(): string
+    {
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $plugin->getTagModel();
+    }
 
     // UI State
     public string $search = '';
@@ -225,7 +251,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
         }
 
         if ($this->currentFolderId) {
-            $this->currentFolder = Folder::query()->with(['tags'])->withCount(['children', 'files'])->find($this->currentFolderId);
+            $this->currentFolder = $this->getFolderModel()::query()->with(['tags'])->withCount(['children', 'files'])->find($this->currentFolderId);
             $this->generateBreadcrumbs();
         }
     }
@@ -405,7 +431,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
                                     Select::make('filterTags')
                                         ->label(__('media-manager::media-manager.fields.tags'))
                                         ->multiple()
-                                        ->options(Tag::pluck('name', 'id'))
+                                        ->options($this->getTagModel()::pluck('name', 'id'))
                                         ->live()
                                         ->searchable()
                                         ->columnSpan(1),
@@ -460,7 +486,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
                                     ->schema(fn (CustomRepeatableEntry $component) => [
                                         MediaItem::make($item = $component->getItem())
                                             ->isPicker($this->isPicker)
-                                            ->isAccepted(! ($this->isPicker && $item instanceof File) || $this->isAccepted($item)),
+                                            ->isAccepted(! ($this->isPicker && $item instanceof ($this->getFileModel())) || $this->isAccepted($item)),
                                     ])
                                     ->extraAttributes([
                                         'class' => 'fi-media-grid',
@@ -512,17 +538,17 @@ class MediaBrowser extends Component implements HasActions, HasForms
                                                     ->size(TextSize::Large),
 
                                                 Grid::make(1)->schema(fn () => collect($items)->map(function ($item) {
-                                                    $type = $item instanceof Folder ? 'folder' : 'file';
+                                                    $type = $item instanceof ($this->getFolderModel()) ? 'folder' : 'file';
                                                     $itemKey = "{$type}-{$item->id}";
 
                                                     return TextEntry::make('item_'.$itemKey)
                                                         ->hiddenLabel()
                                                         ->badge()
                                                         ->state($item->name)
-                                                        ->icon($item instanceof Folder ? 'heroicon-m-folder' : 'heroicon-m-document')
-                                                        ->iconColor($item instanceof Folder ? 'amber' : 'gray')
+                                                        ->icon($item instanceof ($this->getFolderModel()) ? 'heroicon-m-folder' : 'heroicon-m-document')
+                                                        ->iconColor($item instanceof ($this->getFolderModel()) ? 'amber' : 'gray')
                                                         ->belowContent(function () use ($item) {
-                                                            if ($item instanceof Folder) {
+                                                            if ($item instanceof ($this->getFolderModel())) {
                                                                 $itemsCount = $item->children_count + $item->files_count;
 
                                                                 return TextEntry::make('items_count')
@@ -568,12 +594,12 @@ class MediaBrowser extends Component implements HasActions, HasForms
                                                                 ->slideOver()
                                                                 ->icon(Heroicon::OutlinedEye)
                                                                 ->media(fn () => $item->getUrl())
-                                                                ->visible($item instanceof File),
+                                                                ->visible($item instanceof ($this->getFileModel())),
                                                             Action::make('open_url')
                                                                 ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
                                                                 ->iconButton()
                                                                 ->url(fn () => $item->getUrl(), true)
-                                                                ->visible($item instanceof File),
+                                                                ->visible($item instanceof ($this->getFileModel())),
                                                         ]);
                                                 })->toArray())
                                                     ->extraAttributes([
@@ -613,12 +639,12 @@ class MediaBrowser extends Component implements HasActions, HasForms
                                         [$type, $id] = explode('-', $itemKey);
 
                                         if ($type === 'file') {
-                                            $file = File::find($id);
+                                            $file = $this->getFileModel()::find($id);
 
                                             return $file ? $this->fileDetailsSchema($file) : [];
                                         }
 
-                                        $folder = Folder::find($id);
+                                        $folder = $this->getFolderModel()::find($id);
 
                                         return $folder ? $this->folderDetailsSchema($folder) : [];
                                     }),
@@ -659,7 +685,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
     public function deleteFile(int $id): void
     {
-        $file = File::find($id);
+        $file = $this->getFileModel()::find($id);
         if ($file) {
             $idToRemove = "file-{$id}";
             $this->selectedItems = collect($this->selectedItems)
@@ -677,7 +703,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
     public function selectFile(int $id): void
     {
-        $file = File::find($id);
+        $file = $this->getFileModel()::find($id);
 
         if ($this->isPicker && $file && ! $this->isAccepted($file)) {
             return;
@@ -702,7 +728,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
     {
         if (str_starts_with($id, 'file-')) {
             $fileId = str_replace('file-', '', $id);
-            $file = File::find($fileId);
+            $file = $this->getFileModel()::find($fileId);
 
             if ($this->isPicker && $file && ! $this->isAccepted($file)) {
                 return;
@@ -757,7 +783,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
                 ->map(fn ($i) => str_replace('file-', '', $i))
                 ->toArray();
 
-            $files = File::whereIn('id', $fileIds)->get();
+            $files = $this->getFileModel()::whereIn('id', $fileIds)->get();
 
             $callback($files, $this);
         } catch (\Throwable $e) {
@@ -785,8 +811,9 @@ class MediaBrowser extends Component implements HasActions, HasForms
         $this->executeOnSelect();
     }
 
-    public function isAccepted(File $file): bool
+    public function isAccepted(Model $file): bool
     {
+        /** @var File $file */
         if (empty($this->acceptedFileTypes)) {
             return true;
         }
@@ -847,8 +874,11 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
             // 3. Filter Tags
             if (! empty($this->filterTags)) {
-                $query->whereHas('tags', function ($q) {
-                    $q->whereIn('media_tags.id', $this->filterTags);
+                /** @var MediaManagerPlugin $plugin */
+                $plugin = filament('media-manager');
+                $tagTable = (new ($plugin->getTagModel()))->getTable();
+                $query->whereHas('tags', function ($q) use ($tagTable) {
+                    $q->whereIn("{$tagTable}.id", $this->filterTags);
                 });
             }
         } else {
@@ -866,7 +896,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             return collect();
         }
 
-        $query = Folder::query()
+        $query = $this->getFolderModel()::query()
             ->with(['tags'])
             ->withCount(['children', 'files']);
 
@@ -877,7 +907,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
     public function getMediaFilesProperty()
     {
-        $query = File::query()->with(['tags']);
+        $query = $this->getFileModel()::query()->with(['tags']);
 
         $query = $this->applySearchAndFiltersAndDeepSearchToQuery($query, false);
 
@@ -920,8 +950,8 @@ class MediaBrowser extends Component implements HasActions, HasForms
                 }
             }
 
-            $folders = Folder::query()->whereIn('id', $selectedFolderIds)->with(['tags'])->withCount(['children', 'files'])->get();
-            $files = File::query()->whereIn('id', $selectedFileIds)->with(['tags'])->get();
+            $folders = $this->getFolderModel()::query()->whereIn('id', $selectedFolderIds)->with(['tags'])->withCount(['children', 'files'])->get();
+            $files = $this->getFileModel()::query()->whereIn('id', $selectedFileIds)->with(['tags'])->get();
             $allItems = $folders->concat($files);
         } else {
             $folders = $this->getFoldersProperty();
@@ -932,7 +962,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
         $sortProperty = $this->sortField ?: 'name';
         if ($sortProperty === 'mime_type') {
             $allItems = $allItems->map(function ($item) {
-                $item->sort_type = $item instanceof Folder ? 'folder' : $item->mime_type;
+                $item->sort_type = $item instanceof ($this->getFolderModel()) ? 'folder' : $item->mime_type;
 
                 return $item;
             });
@@ -951,8 +981,8 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
         $allItems = $allItems->sort(function ($a, $b) use ($sortProperty, $sortCallback) {
             // Folders always first (priority 0) then files (priority 1)
-            $aPriority = $a instanceof Folder ? 0 : 1;
-            $bPriority = $b instanceof Folder ? 0 : 1;
+            $aPriority = $a instanceof ($this->getFolderModel()) ? 0 : 1;
+            $bPriority = $b instanceof ($this->getFolderModel()) ? 0 : 1;
 
             if ($aPriority !== $bPriority) {
                 return $aPriority <=> $bPriority;
@@ -977,7 +1007,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
         if ($perPage === 'all') {
             $items = $allItems->mapWithKeys(fn ($item) => [
-                ($item instanceof Folder ? 'folder-' : 'file-').$item->id => $item,
+                ($item instanceof ($this->getFolderModel()) ? 'folder-' : 'file-').$item->id => $item,
             ]);
 
             return new LengthAwarePaginator(
@@ -993,7 +1023,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
         }
         $items = $allItems->forPage($page, $perPage)
             ->mapWithKeys(fn ($item) => [
-                ($item instanceof Folder ? 'folder-' : 'file-').$item->id => $item,
+                ($item instanceof ($this->getFolderModel()) ? 'folder-' : 'file-').$item->id => $item,
             ]);
 
         return new LengthAwarePaginator(
@@ -1020,7 +1050,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             return null;
         }
 
-        return File::find($id);
+        return $this->getFileModel()::find($id);
     }
 
     public function getSelectedItemsDataProperty(): array
@@ -1038,7 +1068,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             [$type, $id] = explode('-', $itemKey);
 
             if ($type === 'folder') {
-                $folder = Folder::find($id);
+                $folder = $this->getFolderModel()::find($id);
 
                 if ($folder) {
                     $items[] = $folder;
@@ -1049,12 +1079,12 @@ class MediaBrowser extends Component implements HasActions, HasForms
                     $foldersCount += count($allFolderIdsInThisSelection);
 
                     // Add all files found in this branch
-                    $filesCount += File::whereIn('folder_id', $allFolderIdsInThisSelection)->count();
-                    $totalSize += File::whereIn('folder_id', $allFolderIdsInThisSelection)->sum('size');
+                    $filesCount += $this->getFileModel()::whereIn('folder_id', $allFolderIdsInThisSelection)->count();
+                    $totalSize += $this->getFileModel()::whereIn('folder_id', $allFolderIdsInThisSelection)->sum('size');
                 }
             } else {
                 // It's a single file selection
-                $file = File::find($id);
+                $file = $this->getFileModel()::find($id);
                 if ($file) {
                     $items[] = $file;
                     $filesCount++;
@@ -1071,8 +1101,9 @@ class MediaBrowser extends Component implements HasActions, HasForms
         ];
     }
 
-    protected function fileDetailsSchema(File $file): array
+    protected function fileDetailsSchema(Model $file): array
     {
+        /** @var File $file */
         return [
             ImageEntry::make('sel_preview')
                 ->hiddenLabel()
@@ -1149,7 +1180,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
             TagsInput::make('activeTags')
                 ->label(__('media-manager::media-manager.details.tags'))
-                ->suggestions(Tag::pluck('name')->toArray())
+                ->suggestions($this->getTagModel()::pluck('name')->toArray())
                 ->live()
                 ->visible(fn () => $this->isEditingTags)
                 ->hintAction(
@@ -1181,8 +1212,9 @@ class MediaBrowser extends Component implements HasActions, HasForms
         ];
     }
 
-    protected function folderDetailsSchema(Folder $folder): array
+    protected function folderDetailsSchema(Model $folder): array
     {
+        /** @var Folder $folder */
         $recursiveStats = $folder->getRecursiveStats();
 
         return [
@@ -1230,7 +1262,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
             TagsInput::make('activeTags')
                 ->label(__('media-manager::media-manager.details.tags'))
-                ->suggestions(Tag::pluck('name')->toArray())
+                ->suggestions($this->getTagModel()::pluck('name')->toArray())
                 ->live()
                 ->visible(fn () => $this->isEditingTags)
                 ->hintAction(
@@ -1273,12 +1305,12 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
         $parentId = null;
         if ($type === 'folder') {
-            $folder = Folder::find($id);
+            $folder = $this->getFolderModel()::find($id);
             if ($folder) {
                 $parentId = $folder->parent_id;
             }
         } else {
-            $file = File::find($id);
+            $file = $this->getFileModel()::find($id);
             if ($file) {
                 $parentId = $file->folder_id;
             }
@@ -1301,7 +1333,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             $sortProperty = $this->sortField ?: 'name';
             if ($sortProperty === 'mime_type') {
                 $allItems = $allItems->map(function ($item) {
-                    $item->sort_type = $item instanceof Folder ? 'folder' : $item->mime_type;
+                    $item->sort_type = $item instanceof ($this->getFolderModel()) ? 'folder' : $item->mime_type;
 
                     return $item;
                 });
@@ -1317,8 +1349,8 @@ class MediaBrowser extends Component implements HasActions, HasForms
             };
 
             $allItems = $allItems->sort(function ($a, $b) use ($sortProperty, $sortCallback) {
-                $aPriority = $a instanceof Folder ? 0 : 1;
-                $bPriority = $b instanceof Folder ? 0 : 1;
+                $aPriority = $a instanceof ($this->getFolderModel()) ? 0 : 1;
+                $bPriority = $b instanceof ($this->getFolderModel()) ? 0 : 1;
 
                 if ($aPriority !== $bPriority) {
                     return $aPriority <=> $bPriority;
@@ -1335,7 +1367,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             })->values();
 
             $index = $allItems->search(function ($item) use ($type, $id) {
-                return ($item instanceof Folder ? 'folder' : 'file') === $type && $item->id == $id;
+                return ($item instanceof ($this->getFolderModel()) ? 'folder' : 'file') === $type && $item->id == $id;
             });
 
             if ($index !== false) {
@@ -1350,7 +1382,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
     public function setCurrentFolder(?int $id): void
     {
         $this->currentFolderId = $id;
-        $this->currentFolder = $id ? Folder::query()->with(['tags'])->withCount(['children', 'files'])->find($id) : null;
+        $this->currentFolder = $id ? $this->getFolderModel()::query()->with(['tags'])->withCount(['children', 'files'])->find($id) : null;
         $this->editingFolderId = null;
         $this->isEditingTags = false;
         $this->generateBreadcrumbs();
@@ -1366,19 +1398,19 @@ class MediaBrowser extends Component implements HasActions, HasForms
         if (count($this->selectedItems) === 1) {
             [$type, $id] = explode('-', reset($this->selectedItems));
             if ($type === 'file') {
-                $model = File::find($id);
+                $model = $this->getFileModel()::find($id);
             } else {
-                $model = Folder::find($id);
+                $model = $this->getFolderModel()::find($id);
             }
         } elseif ($this->editingFolderId) {
-            $model = Folder::find($this->editingFolderId);
+            $model = $this->getFolderModel()::find($this->editingFolderId);
         } elseif ($this->currentFolderId) {
             $model = $this->currentFolder;
         }
 
         if ($model) {
             $tagIds = collect($this->activeTags)->map(function ($name) {
-                return Tag::firstOrCreate(['name' => $name])->id;
+                return $this->getTagModel()::firstOrCreate(['name' => $name])->id;
             })->toArray();
 
             $model->tags()->sync($tagIds);
@@ -1436,7 +1468,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             ->schema([
                 SelectTree::make('folder_id')
                     ->label(__('media-manager::media-manager.fields.target_folder'))
-                    ->query(Folder::query()->orderBy('name'), 'name', 'parent_id')
+                    ->query($this->getFolderModel()::query()->orderBy('name'), 'name', 'parent_id')
                     ->prepend([
                         'name' => __('media-manager::media-manager.messages.root'),
                         'value' => 0,
@@ -1449,8 +1481,9 @@ class MediaBrowser extends Component implements HasActions, HasForms
             ->action(fn (array $data) => $this->moveSelectedItems($data['folder_id']));
     }
 
-    protected function getFolderTreePath(Folder $folder): string
+    protected function getFolderTreePath(Model $folder): string
     {
+        /** @var Folder $folder */
         $path = [$folder->name];
         $parent = $folder->parent;
 
@@ -1473,7 +1506,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
                     ->required(),
             ])
             ->action(function (array $data) {
-                Folder::create([
+                $this->getFolderModel()::create([
                     'name' => $data['name'],
                     'parent_id' => $this->currentFolderId,
                 ]);
@@ -1514,7 +1547,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
                     ->required(),
                 TagsInput::make('tags')
                     ->label(__('media-manager::media-manager.fields.tags'))
-                    ->suggestions(Tag::pluck('name')->toArray()),
+                    ->suggestions($this->getTagModel()::pluck('name')->toArray()),
                 TextInput::make('caption')
                     ->label(__('media-manager::media-manager.fields.caption')),
                 TextInput::make('alt_text')
@@ -1528,7 +1561,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
                     $name = pathinfo($filename, PATHINFO_FILENAME);
 
-                    $fileModel = File::create([
+                    $fileModel = $this->getFileModel()::create([
                         'name' => $name,
                         'uploaded_by_user_id' => auth()->id(),
                         'folder_id' => $this->currentFolderId,
@@ -1538,7 +1571,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
 
                     if (isset($data['tags'])) {
                         $tagIds = collect($data['tags'])->map(function ($name) {
-                            return Tag::firstOrCreate(['name' => $name])->id;
+                            return $this->getTagModel()::firstOrCreate(['name' => $name])->id;
                         })->toArray();
 
                         $fileModel->tags()->sync($tagIds);
@@ -1643,7 +1676,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             return;
         }
 
-        $uuids = File::with('media')->whereIn('id', $fileIds)->get()->map(fn ($file) => $file->getFirstMedia('default')?->uuid)->filter()->values()->toArray();
+        $uuids = $this->getFileModel()::with('media')->whereIn('id', $fileIds)->get()->map(fn ($file) => $file->getFirstMedia('default')?->uuid)->filter()->values()->toArray();
 
         $this->dispatch('media-picker-selected', [
             'pickerId' => $this->pickerId,
@@ -1663,13 +1696,13 @@ class MediaBrowser extends Component implements HasActions, HasForms
             [$type, $id] = explode('-', $itemKey);
 
             if ($type === 'folder') {
-                $folder = Folder::find($id);
+                $folder = $this->getFolderModel()::find($id);
                 if ($folder) {
                     // Recursive deletion of children and files
                     $this->recursiveDeleteFolder($folder);
                 }
             } else {
-                $file = File::find($id);
+                $file = $this->getFileModel()::find($id);
                 if ($file) {
                     $file->delete();
                 }
@@ -1687,20 +1720,23 @@ class MediaBrowser extends Component implements HasActions, HasForms
             ->send();
     }
 
-    protected function recursiveDeleteFolder(Folder $folder): void
+    protected function recursiveDeleteFolder(Model $folder): void
     {
+        /** @var Folder $actualFolder */
+        $actualFolder = $folder;
+
         // Delete all files in this folder
-        foreach ($folder->files as $file) {
+        foreach ($actualFolder->files as $file) {
             $file->delete();
         }
 
         // Recursively delete sub-folders
-        foreach ($folder->children as $subFolder) {
+        foreach ($actualFolder->children as $subFolder) {
             $this->recursiveDeleteFolder($subFolder);
         }
 
         // Finally delete the folder itself
-        $folder->delete();
+        $actualFolder->delete();
     }
 
     public function moveSelectedItems(?int $targetFolderId): void
@@ -1716,7 +1752,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
             [$type, $id] = explode('-', $itemKey);
 
             if ($type === 'folder') {
-                $folder = Folder::find($id);
+                $folder = $this->getFolderModel()::find($id);
                 // Prevent moving a folder into itself or its descendants
                 if ($folder && $targetFolderId != $folder->id) {
                     $descendantIds = $folder->getAllDescendantIds();
@@ -1725,7 +1761,7 @@ class MediaBrowser extends Component implements HasActions, HasForms
                     }
                 }
             } else {
-                $file = File::find($id);
+                $file = $this->getFileModel()::find($id);
                 if ($file) {
                     $file->update(['folder_id' => $targetFolderId]);
                 }

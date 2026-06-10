@@ -7,6 +7,10 @@ use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Illuminate\Contracts\View\View;
+use Slimani\MediaManager\Models\File;
+use Slimani\MediaManager\Models\Folder;
+use Slimani\MediaManager\Models\MediaAttachment;
+use Slimani\MediaManager\Models\Tag;
 use Slimani\MediaManager\Pages\MediaManager;
 
 class MediaManagerPlugin implements Plugin
@@ -14,6 +18,14 @@ class MediaManagerPlugin implements Plugin
     use EvaluatesClosures;
 
     protected string|Closure $page = MediaManager::class;
+
+    protected string|Closure $fileModel = File::class;
+
+    protected string|Closure $folderModel = Folder::class;
+
+    protected string|Closure $tagModel = Tag::class;
+
+    protected string|Closure $attachmentModel = MediaAttachment::class;
 
     protected string|Closure|null $disk = null;
 
@@ -74,6 +86,54 @@ class MediaManagerPlugin implements Plugin
     public function getPage(): string
     {
         return (string) $this->evaluate($this->page);
+    }
+
+    public function fileModel(string|Closure $model): static
+    {
+        $this->fileModel = $model;
+
+        return $this;
+    }
+
+    public function getFileModel(): string
+    {
+        return (string) $this->evaluate($this->fileModel);
+    }
+
+    public function folderModel(string|Closure $model): static
+    {
+        $this->folderModel = $model;
+
+        return $this;
+    }
+
+    public function getFolderModel(): string
+    {
+        return (string) $this->evaluate($this->folderModel);
+    }
+
+    public function tagModel(string|Closure $model): static
+    {
+        $this->tagModel = $model;
+
+        return $this;
+    }
+
+    public function getTagModel(): string
+    {
+        return (string) $this->evaluate($this->tagModel);
+    }
+
+    public function attachmentModel(string|Closure $model): static
+    {
+        $this->attachmentModel = $model;
+
+        return $this;
+    }
+
+    public function getAttachmentModel(): string
+    {
+        return (string) $this->evaluate($this->attachmentModel);
     }
 
     public function disk(string|Closure $disk): static

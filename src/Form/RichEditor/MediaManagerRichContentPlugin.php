@@ -19,6 +19,7 @@ use Slimani\MediaManager\Form\RichEditor\FileAttachmentProviders\MediaManagerFil
 use Slimani\MediaManager\Form\RichEditor\Nodes\MediaFileNode;
 use Slimani\MediaManager\Form\RichEditor\Nodes\MediaImageNode;
 use Slimani\MediaManager\Livewire\MediaBrowser;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Slimani\MediaManager\Models\File;
 
 class MediaManagerRichContentPlugin implements HasFileAttachmentProvider, HasToolbarButtons, RichContentPlugin
@@ -117,7 +118,10 @@ class MediaManagerRichContentPlugin implements HasFileAttachmentProvider, HasToo
                         return;
                     }
 
-                    $files = File::findMany($ids);
+                    /** @var MediaManagerPlugin $plugin */
+                    $plugin = filament('media-manager');
+                    $fileModel = $plugin->getFileModel();
+                    $files = $fileModel::findMany($ids);
                     $commands = [];
 
                     $acceptedTypes = $this->getAcceptedFileTypes();

@@ -2,20 +2,25 @@
 
 namespace Slimani\MediaManager\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Slimani\MediaManager\Models\File;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Slimani\MediaManager\Models\Folder;
 
 class MediaUploadService
 {
     public function upload(
         UploadedFile|TemporaryUploadedFile $file,
-        ?Folder $folder = null,
+        ?Model $folder = null,
         ?int $userId = null,
         array $metadata = []
-    ): File {
-        $fileModel = File::create([
+    ): Model {
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+        $fileModelClass = $plugin->getFileModel();
+        /** @var Folder|null $folder */
+        $fileModel = $fileModelClass::create([
             'folder_id' => $folder?->id,
             'uploaded_by_user_id' => $userId,
             'name' => $metadata['name'] ?? $file->getClientOriginalName(),

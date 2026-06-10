@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Carbon;
 use Slimani\MediaManager\Database\Factories\FileFactory;
+use Slimani\MediaManager\MediaManagerPlugin;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -63,7 +64,10 @@ class File extends Model implements HasMedia
 
     public function tags(): MorphToMany
     {
-        return $this->morphToMany(Tag::class, 'taggable', 'media_taggables');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->morphToMany($plugin->getTagModel(), 'taggable', 'media_taggables');
     }
 
     public function registerMediaCollections(): void
@@ -86,7 +90,9 @@ class File extends Model implements HasMedia
             ->nonQueued();
 
         try {
-            if (filament('media-manager')->getWithVideoThumbnails()) {
+            /** @var MediaManagerPlugin $plugin */
+            $plugin = filament('media-manager');
+            if ($plugin->getWithVideoThumbnails()) {
                 $thumbConversion->extractVideoFrameAtSecond(1);
                 $previewConversion->extractVideoFrameAtSecond(1);
             }
@@ -104,7 +110,10 @@ class File extends Model implements HasMedia
 
     public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class, 'folder_id');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->belongsTo($plugin->getFolderModel(), 'folder_id');
     }
 
     public function uploader(): BelongsTo

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Slimani\MediaManager\MediaManagerPlugin;
 
 /**
  * @property int $id
@@ -27,22 +28,34 @@ class Folder extends Model
 
     public function tags(): MorphToMany
     {
-        return $this->morphToMany(Tag::class, 'taggable', 'media_taggables');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->morphToMany($plugin->getTagModel(), 'taggable', 'media_taggables');
     }
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Folder::class, 'parent_id');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->belongsTo($plugin->getFolderModel(), 'parent_id');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(Folder::class, 'parent_id');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->hasMany($plugin->getFolderModel(), 'parent_id');
     }
 
     public function files(): HasMany
     {
-        return $this->hasMany(File::class, 'folder_id');
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+
+        return $this->hasMany($plugin->getFileModel(), 'folder_id');
     }
 
     /**
@@ -51,15 +64,17 @@ class Folder extends Model
      */
     public function getAllDescendantIds(): array
     {
-        $query = '
+        $folderTable = $this->getTable();
+
+        $query = "
             WITH RECURSIVE FolderHierarchy AS (
-                SELECT id, parent_id FROM media_folders WHERE id = ?
+                SELECT id, parent_id FROM {$folderTable} WHERE id = ?
                 UNION ALL
-                SELECT f.id, f.parent_id FROM media_folders f
+                SELECT f.id, f.parent_id FROM {$folderTable} f
                 INNER JOIN FolderHierarchy fh ON fh.id = f.parent_id
             )
             SELECT id FROM FolderHierarchy WHERE id != ?
-        ';
+        ";
 
         $results = DB::select($query, [$this->id, $this->id]);
 
@@ -71,20 +86,25 @@ class Folder extends Model
      */
     public function getRecursiveStats(): array
     {
-        $query = '
+        $folderTable = $this->getTable();
+        /** @var MediaManagerPlugin $plugin */
+        $plugin = filament('media-manager');
+        $fileTable = (new ($plugin->getFileModel()))->getTable();
+
+        $query = "
             WITH RECURSIVE FolderHierarchy AS (
-                SELECT id FROM media_folders WHERE id = ?
+                SELECT id FROM {$folderTable} WHERE id = ?
                 UNION ALL
-                SELECT f.id FROM media_folders f
+                SELECT f.id FROM {$folderTable} f
                 INNER JOIN FolderHierarchy fh ON fh.id = f.parent_id
             )
             SELECT 
-                COUNT(DISTINCT media_files.id) as files_count,
-                SUM(media_files.size) as total_size,
+                COUNT(DISTINCT {$fileTable}.id) as files_count,
+                SUM({$fileTable}.size) as total_size,
                 (SELECT COUNT(*) FROM FolderHierarchy WHERE id != ?) as folders_count
             FROM FolderHierarchy
-            LEFT JOIN media_files ON media_files.folder_id = FolderHierarchy.id
-        ';
+            LEFT JOIN {$fileTable} ON {$fileTable}.folder_id = FolderHierarchy.id
+        ";
 
         $result = DB::selectOne($query, [$this->id, $this->id]);
 

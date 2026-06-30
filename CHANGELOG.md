@@ -2,6 +2,11 @@
 
 All notable changes to `filament-media-manager` will be documented in this file.
 
+## v0.13.1 - 2026-06-30
+
+### Fixed
+- Updated media URL generation to return clean URLs for public disks and temporary signed URLs for private disks, with support for `conversions_disk`.
+
 ## v0.13.0 - 2026-06-10
 
 ### Added
@@ -11,7 +16,6 @@ All notable changes to `filament-media-manager` will be documented in this file.
 ### Fixed
 - Fixed 72 PHPStan errors to improve code quality and type safety.
 - Resolved hardcoded table name issues in recursive CTE folder calculations.
-- Updated media URL generation to return clean URLs for public disks and temporary signed URLs for private disks, with support for `conversions_disk`.
 
 ### Changed
 - Updated documentation to reflect model customization and prefix support.

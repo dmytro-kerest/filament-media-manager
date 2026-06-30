@@ -136,11 +136,33 @@ class File extends Model implements HasMedia
             return null;
         }
 
+        // Originals live on the media disk, while named conversions may live on a dedicated conversions disk.
+        // We prefer clean URLs for explicitly public disks and signed temporary URLs for everything else.
+        if ($this->diskIsPublic($media, $conversion)) {
+            return $media->getUrl($conversion);
+        }
+
         try {
             return $media->getTemporaryUrl(now()->addMinutes(20), $conversion);
         } catch (\Throwable $exception) {
-            // Fallback to standard URL if driver doesn't support temporary URLs
+            // Some drivers cannot generate temporary URLs, so fall back to the normal URL generator.
             return $media->getUrl($conversion);
         }
+    }
+
+    protected function diskIsPublic(Media $media, string $conversion = ''): bool
+    {
+        $diskName = $this->resolveDiskNameForUrl($media, $conversion);
+
+        return config("filesystems.disks.{$diskName}.visibility") === 'public';
+    }
+
+    protected function resolveDiskNameForUrl(Media $media, string $conversion = ''): string
+    {
+        if ($conversion !== '') {
+            return $media->conversions_disk ?: $media->disk ?: config('media-library.disk_name');
+        }
+
+        return $media->disk ?: config('media-library.disk_name');
     }
 }

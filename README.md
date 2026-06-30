@@ -233,9 +233,13 @@ MediaFileEntry::make('cv')
 
 Both components support the media preview action that opens files in a slide-over.
 
+### URL Generation and Disk Visibility
+
+`File::getUrl()` returns clean URLs for disks with `visibility => 'public'`, and temporary signed URLs for other disks when supported. For conversions, it also respects `conversions_disk` when set. See [docs/url-generation.md](docs/url-generation.md) for configuration details and examples.
+
 ### Rich Text Editor Integration
 
-The Media Manager integrates deeply with Filament's `RichEditor`, allowing you to insert images directly from your media library and ensuring that images always use fresh, valid URLs (supporting signed/temporary URLs).
+The Media Manager integrates deeply with Filament's `RichEditor`, allowing you to insert images directly from your media library while keeping generated media URLs aligned with your disk visibility settings.
 
 #### 1. Prepare your Model
 
@@ -281,7 +285,7 @@ RichEditor::make('resume')
 
 #### 3. Use in Infolists (Dynamic Rendering)
 
-To ensure that images in your rich text always use fresh URLs (especially important if using temporary or signed URLs), use the `renderRichContent` method in your Infolist.
+To ensure that images in your rich text always use the correct URLs at render time, use the `renderRichContent` method in your Infolist. This is especially important when your media uses private disks or temporary signed URLs.
 
 ```php
 use Filament\Infolists\Components\TextEntry;
